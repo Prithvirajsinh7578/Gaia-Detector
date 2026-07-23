@@ -1,0 +1,26 @@
+version: "3.9"
+
+services:
+  frontend:
+    build: ../frontend
+    ports:
+      - "3000:3000"
+
+  backend:
+    build: ../backend
+    ports:
+      - "8000:8000"
+
+  ai-service:
+    build: ../ai
+    ports:
+      - "5000:5000"
+
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: ai_detector
+    ports:
+      - "5432:5432"
