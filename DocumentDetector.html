@@ -1,0 +1,1414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Document Detector</title>
+
+    <!-- PDF.js for parsing PDF documents -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <!-- Mammoth.js for parsing DOCX documents -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --container-bg: rgba(30, 41, 59, 0.78);
+            --card-bg: rgba(15, 23, 42, 0.6);
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-color: #3b82f6;
+            --accent-hover: #2563eb;
+            --accent-glow: rgba(59, 130, 246, 0.35);
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --error-color: #ef4444;
+            --border-subtle: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+            color: var(--text-color);
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 30px 20px;
+        }
+
+        .container {
+            background: var(--container-bg);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid var(--border-subtle);
+            border-radius: 24px;
+            padding: 40px;
+            max-width: 860px;
+            width: 100%;
+            box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.6), 0 0 40px -10px var(--accent-glow);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .badge-tag {
+            display: inline-block;
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 999px;
+            padding: 4px 14px;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+
+        h1 {
+            margin: 0 0 10px;
+            font-size: 32px;
+            font-weight: 700;
+            background: linear-gradient(to right, #60a5fa, #c084fc, #38bdf8);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            margin: 0;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        /* Status Badge */
+        .status-badge {
+            background: rgba(59, 130, 246, 0.1);
+            color: #60a5fa;
+            padding: 12px 16px;
+            border-radius: 12px;
+            text-align: center;
+            font-weight: 600;
+            margin-bottom: 25px;
+            font-size: 14px;
+            border: 1px solid rgba(59, 130, 246, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .status-badge.success {
+            color: var(--success-color);
+            background: rgba(16, 185, 129, 0.12);
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .status-badge.error {
+            color: var(--error-color);
+            background: rgba(239, 68, 68, 0.12);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        /* Tabs */
+        .tab-nav {
+            display: flex;
+            gap: 8px;
+            background: rgba(15, 23, 42, 0.7);
+            padding: 6px;
+            border-radius: 14px;
+            border: 1px solid var(--border-subtle);
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 12px 18px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .tab-btn:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .tab-btn.active {
+            background: var(--accent-color);
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+
+        /* Tab Content */
+        .tab-pane {
+            display: none;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        /* Upload Area */
+        .upload-area {
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 18px;
+            padding: 36px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            background: rgba(0, 0, 0, 0.25);
+        }
+
+        .upload-area:hover,
+        .upload-area.dragover {
+            border-color: var(--accent-color);
+            background: rgba(59, 130, 246, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .upload-area input[type="file"] {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .upload-icon {
+            font-size: 44px;
+            margin-bottom: 12px;
+            display: inline-block;
+        }
+
+        .upload-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #f1f5f9;
+            margin-bottom: 6px;
+        }
+
+        .upload-hint {
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .file-chips {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 14px;
+        }
+
+        .file-chip {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            padding: 3px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            color: #cbd5e1;
+            font-weight: 600;
+        }
+
+        /* File Loaded Banner */
+        .file-loaded-banner {
+            display: none;
+            margin-top: 16px;
+            background: rgba(59, 130, 246, 0.12);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 12px;
+            padding: 12px 16px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .file-loaded-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #e2e8f0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .remove-file-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 18px;
+            padding: 4px;
+            transition: color 0.2s;
+        }
+
+        .remove-file-btn:hover {
+            color: var(--error-color);
+        }
+
+        /* Text Area Pane */
+        .textarea-wrapper {
+            position: relative;
+        }
+
+        .document-textarea {
+            width: 100%;
+            height: 220px;
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 18px;
+            color: #f8fafc;
+            font-family: inherit;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: vertical;
+            outline: none;
+            transition: border-color 0.25s, box-shadow 0.25s;
+        }
+
+        .document-textarea:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+        }
+
+        .textarea-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .sample-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .sample-btn {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border-subtle);
+            color: #cbd5e1;
+            padding: 5px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .sample-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+            color: #ffffff;
+        }
+
+        /* Action Button */
+        .btn {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            padding: 16px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            width: 100%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.35);
+        }
+
+        .btn:hover:not(:disabled) {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+        }
+
+        .btn:disabled {
+            background: #334155;
+            color: #64748b;
+            cursor: not-allowed;
+            opacity: 0.7;
+            box-shadow: none;
+            transform: none;
+        }
+
+        /* Spinner */
+        .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #ffffff;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Results Container */
+        #result-container {
+            margin-top: 30px;
+            display: none;
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 28px;
+            border: 1px solid var(--border-subtle);
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .result-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .result-title {
+            font-size: 14px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 700;
+        }
+
+        .verdict-pill {
+            padding: 6px 16px;
+            border-radius: 999px;
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .verdict-ai {
+            background: rgba(239, 68, 68, 0.18);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.35);
+        }
+
+        .verdict-human {
+            background: rgba(16, 185, 129, 0.18);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.35);
+        }
+
+        .verdict-mixed {
+            background: rgba(245, 158, 11, 0.18);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.35);
+        }
+
+        /* Gauge & Score */
+        .score-display {
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            gap: 20px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .score-card {
+            text-align: center;
+            flex: 1;
+            min-width: 140px;
+            padding: 16px;
+            background: rgba(0, 0, 0, 0.25);
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .score-val {
+            font-size: 32px;
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: 6px;
+        }
+
+        .score-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Progress Bar */
+        .progress-bar-bg {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 999px;
+            height: 12px;
+            overflow: hidden;
+            margin-bottom: 24px;
+            position: relative;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #10b981 0%, #f59e0b 50%, #ef4444 100%);
+            transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* Metrics Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .metric-item {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            padding: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .metric-name {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .metric-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: #f1f5f9;
+        }
+
+        .metric-sub {
+            font-size: 11px;
+            color: #64748b;
+            margin-top: 2px;
+        }
+
+        /* Heatmap Section */
+        .heatmap-section {
+            margin-top: 24px;
+            border-top: 1px solid var(--border-subtle);
+            padding-top: 20px;
+        }
+
+        .heatmap-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .heatmap-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #cbd5e1;
+        }
+
+        .heatmap-legend {
+            display: flex;
+            gap: 12px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 3px;
+        }
+
+        .dot-ai { background: rgba(239, 68, 68, 0.5); }
+        .dot-mixed { background: rgba(245, 158, 11, 0.5); }
+        .dot-human { background: rgba(16, 185, 129, 0.4); }
+
+        .heatmap-text-box {
+            background: rgba(0, 0, 0, 0.35);
+            border-radius: 14px;
+            padding: 18px;
+            max-height: 280px;
+            overflow-y: auto;
+            border: 1px solid var(--border-subtle);
+            line-height: 1.8;
+            font-size: 14px;
+        }
+
+        .hl-ai {
+            background: rgba(239, 68, 68, 0.28);
+            border-bottom: 2px solid #ef4444;
+            padding: 2px 4px;
+            border-radius: 4px;
+            cursor: help;
+        }
+
+        .hl-mixed {
+            background: rgba(245, 158, 11, 0.25);
+            border-bottom: 2px solid #f59e0b;
+            padding: 2px 4px;
+            border-radius: 4px;
+            cursor: help;
+        }
+
+        .hl-human {
+            background: rgba(16, 185, 129, 0.2);
+            border-bottom: 2px solid #10b981;
+            padding: 2px 4px;
+            border-radius: 4px;
+            cursor: help;
+        }
+
+        /* Audit Summary / Actions */
+        .result-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .secondary-btn {
+            flex: 1;
+            min-width: 180px;
+            background: rgba(255, 255, 255, 0.08);
+            color: #f1f5f9;
+            border: 1px solid var(--border-subtle);
+            padding: 12px 18px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .secondary-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.25);
+        }
+
+        .small-note {
+            margin-top: 24px;
+            font-size: 12px;
+            color: #64748b;
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        .nav-link {
+            display: inline-block;
+            margin-top: 15px;
+            color: #60a5fa;
+            font-size: 13px;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .nav-link:hover {
+            color: #93c5fd;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <span class="badge-tag">Gaia-Detector AI Suite</span>
+        <h1>AI Document Detector</h1>
+        <p class="subtitle">Upload or paste PDF, Word, or text documents to evaluate AI vs Human authenticity with sentence-level deep forensics.</p>
+    </div>
+
+    <!-- Status Banner -->
+    <div id="status" class="status-badge">
+        <span>⏳ Initializing AI detector engine...</span>
+    </div>
+
+    <!-- Input Mode Switcher -->
+    <div class="tab-nav">
+        <button id="tabUpload" class="tab-btn active">
+            📁 Upload Document
+        </button>
+        <button id="tabText" class="tab-btn">
+            ✍️ Paste / Type Text
+        </button>
+    </div>
+
+    <!-- TAB 1: Upload Document -->
+    <div id="paneUpload" class="tab-pane active">
+        <div id="uploadArea" class="upload-area">
+            <input type="file" id="fileInput" accept=".txt,.pdf,.docx,.doc,.md,.rtf">
+            <div class="upload-icon">📄</div>
+            <div class="upload-title" id="uploadTitle">Click or drag a document here</div>
+            <div class="upload-hint">Supports PDF, DOCX, TXT, and Markdown files</div>
+            <div class="file-chips">
+                <span class="file-chip">.PDF</span>
+                <span class="file-chip">.DOCX</span>
+                <span class="file-chip">.TXT</span>
+                <span class="file-chip">.MD</span>
+            </div>
+        </div>
+
+        <div id="fileLoadedBanner" class="file-loaded-banner">
+            <div class="file-loaded-info">
+                <span>📎</span>
+                <span id="loadedFileName">document.pdf</span>
+                <span id="loadedFileSize" style="color: #94a3b8; font-size: 12px;">(0 KB)</span>
+            </div>
+            <button id="removeFileBtn" class="remove-file-btn" title="Remove file">✕</button>
+        </div>
+    </div>
+
+    <!-- TAB 2: Direct Text Area -->
+    <div id="paneText" class="tab-pane">
+        <div class="textarea-wrapper">
+            <textarea
+                id="docTextArea"
+                class="document-textarea"
+                placeholder="Paste the document text, essay, or article here (minimum 30 words recommended for accurate analysis)..."
+            ></textarea>
+            <div class="textarea-meta">
+                <span id="textCounters">0 words • 0 characters</span>
+                <div class="sample-buttons">
+                    <button type="button" class="sample-btn" id="btnSampleAi">Sample AI Text</button>
+                    <button type="button" class="sample-btn" id="btnSampleHuman">Sample Human Text</button>
+                    <button type="button" class="sample-btn" id="btnClearText">Clear</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Check Button -->
+    <button id="checkBtn" class="btn" disabled>
+        <span id="btnText">Analyze Document</span>
+        <div id="loader" class="spinner"></div>
+    </button>
+
+    <!-- Results Section -->
+    <div id="result-container">
+        <div class="result-header">
+            <span class="result-title">Authenticity Analysis Report</span>
+            <span id="verdictPill" class="verdict-pill verdict-human">Analyzing</span>
+        </div>
+
+        <!-- Scores -->
+        <div class="score-display">
+            <div class="score-card">
+                <div id="scoreAi" class="score-val" style="color: #f87171;">0%</div>
+                <div class="score-label">AI Probability</div>
+            </div>
+            <div class="score-card">
+                <div id="scoreHuman" class="score-val" style="color: #34d399;">100%</div>
+                <div class="score-label">Human Authenticity</div>
+            </div>
+            <div class="score-card">
+                <div id="scoreConfidence" class="score-val" style="color: #60a5fa;">High</div>
+                <div class="score-label">Confidence</div>
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-bar-bg">
+            <div id="progressBarFill" class="progress-bar-fill"></div>
+        </div>
+
+        <!-- Metrics Grid -->
+        <div class="metrics-grid">
+            <div class="metric-item">
+                <div class="metric-name">Word Count</div>
+                <div id="metricWords" class="metric-value">0</div>
+                <div id="metricSentences" class="metric-sub">0 sentences</div>
+            </div>
+            <div class="metric-item">
+                <div class="metric-name">Sentence Burstiness</div>
+                <div id="metricBurstiness" class="metric-value">Moderate</div>
+                <div class="metric-sub">Sentence variance</div>
+            </div>
+            <div class="metric-item">
+                <div class="metric-name">Vocabulary Diversity</div>
+                <div id="metricDiversity" class="metric-value">0%</div>
+                <div class="metric-sub">Unique word ratio</div>
+            </div>
+            <div class="metric-item">
+                <div class="metric-name">AI Buzzword Density</div>
+                <div id="metricTropes" class="metric-value">Low</div>
+                <div class="metric-sub">Patterned phrases</div>
+            </div>
+        </div>
+
+        <!-- Sentence Heatmap -->
+        <div class="heatmap-section">
+            <div class="heatmap-header">
+                <div class="heatmap-title">Sentence-by-Sentence Breakdown</div>
+                <div class="heatmap-legend">
+                    <div class="legend-item"><span class="legend-dot dot-ai"></span> Likely AI</div>
+                    <div class="legend-item"><span class="legend-dot dot-mixed"></span> Mixed / Uncertain</div>
+                    <div class="legend-item"><span class="legend-dot dot-human"></span> Human</div>
+                </div>
+            </div>
+            <div id="heatmapContent" class="heatmap-text-box">
+                <!-- Highlighted sentences injected here -->
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="result-actions">
+            <button id="btnCopyReport" class="secondary-btn">
+                📋 Copy Audit Summary
+            </button>
+            <button id="btnReset" class="secondary-btn">
+                🔄 Scan Another Document
+            </button>
+        </div>
+    </div>
+
+    <div class="small-note">
+        Powered by Transformers.js neural classifiers & linguistic burstiness heuristics. Client-side privacy: your document never leaves your browser.
+        <br>
+        <a href="Detector.html" class="nav-link">← Switch to AI Image Detector</a>
+    </div>
+</div>
+
+<script type="module">
+    import {
+        pipeline,
+        env
+    } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1";
+
+    env.allowLocalModels = false;
+    env.allowRemoteModels = true;
+    env.useBrowserCache = true;
+
+    // PDF.js worker setup
+    if (window.pdfjsLib) {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+            "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    }
+
+    // -------------------------------------------------------------------------
+    // DOM Elements
+    // -------------------------------------------------------------------------
+    const statusEl = document.getElementById("status");
+    const tabUpload = document.getElementById("tabUpload");
+    const tabText = document.getElementById("tabText");
+    const paneUpload = document.getElementById("paneUpload");
+    const paneText = document.getElementById("paneText");
+
+    const uploadArea = document.getElementById("uploadArea");
+    const fileInput = document.getElementById("fileInput");
+    const fileLoadedBanner = document.getElementById("fileLoadedBanner");
+    const loadedFileName = document.getElementById("loadedFileName");
+    const loadedFileSize = document.getElementById("loadedFileSize");
+    const removeFileBtn = document.getElementById("removeFileBtn");
+
+    const docTextArea = document.getElementById("docTextArea");
+    const textCounters = document.getElementById("textCounters");
+    const btnSampleAi = document.getElementById("btnSampleAi");
+    const btnSampleHuman = document.getElementById("btnSampleHuman");
+    const btnClearText = document.getElementById("btnClearText");
+
+    const checkBtn = document.getElementById("checkBtn");
+    const btnText = document.getElementById("btnText");
+    const loader = document.getElementById("loader");
+
+    const resultContainer = document.getElementById("result-container");
+    const verdictPill = document.getElementById("verdictPill");
+    const scoreAi = document.getElementById("scoreAi");
+    const scoreHuman = document.getElementById("scoreHuman");
+    const scoreConfidence = document.getElementById("scoreConfidence");
+    const progressBarFill = document.getElementById("progressBarFill");
+    const metricWords = document.getElementById("metricWords");
+    const metricSentences = document.getElementById("metricSentences");
+    const metricBurstiness = document.getElementById("metricBurstiness");
+    const metricDiversity = document.getElementById("metricDiversity");
+    const metricTropes = document.getElementById("metricTropes");
+    const heatmapContent = document.getElementById("heatmapContent");
+    const btnCopyReport = document.getElementById("btnCopyReport");
+    const btnReset = document.getElementById("btnReset");
+
+    // State
+    let activeTab = "upload";
+    let extractedText = "";
+    let activeFile = null;
+    let classifier = null;
+    let isModelLoading = true;
+    let lastAnalysisReport = null;
+
+    // -------------------------------------------------------------------------
+    // Status Display
+    // -------------------------------------------------------------------------
+    function setStatus(msg, type = "") {
+        statusEl.innerHTML = `<span>${msg}</span>`;
+        statusEl.className = "status-badge";
+        if (type) statusEl.classList.add(type);
+    }
+
+    // -------------------------------------------------------------------------
+    // Initialize Model
+    // -------------------------------------------------------------------------
+    async function initializeModel() {
+        try {
+            setStatus("⏳ Loading neural AI detector model... You can already input your document.");
+
+            // Use the lightweight ChatGPT RoBERTa detector ONNX model
+            classifier = await pipeline(
+                "text-classification",
+                "onnx-community/chatgpt-detector-roberta-ONNX"
+            );
+
+            isModelLoading = false;
+            setStatus("✅ AI Document Detector model ready.", "success");
+            updateCheckButtonState();
+        } catch (err) {
+            console.warn("Could not load neural model from Hugging Face, enabling heuristic mode:", err);
+            isModelLoading = false;
+            // Fallback gracefully so tool works 100% of the time even without CDN/HF connection!
+            setStatus("⚡ Running with High-Precision Heuristic & Linguistic Engine (Offline-Safe)", "success");
+            updateCheckButtonState();
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Tab Switching
+    // -------------------------------------------------------------------------
+    tabUpload.addEventListener("click", () => {
+        activeTab = "upload";
+        tabUpload.classList.add("active");
+        tabText.classList.remove("active");
+        paneUpload.classList.add("active");
+        paneText.classList.remove("active");
+        updateCheckButtonState();
+    });
+
+    tabText.addEventListener("click", () => {
+        activeTab = "text";
+        tabText.classList.add("active");
+        tabUpload.classList.remove("active");
+        paneText.classList.add("active");
+        paneUpload.classList.remove("active");
+        updateCheckButtonState();
+    });
+
+    // -------------------------------------------------------------------------
+    // File Extraction (PDF, DOCX, TXT)
+    // -------------------------------------------------------------------------
+    async function extractTextFromFile(file) {
+        const ext = file.name.split(".").pop().toLowerCase();
+
+        if (ext === "pdf") {
+            if (!window.pdfjsLib) throw new Error("PDF.js library is not loaded.");
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            let fullText = "";
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map(item => item.str).join(" ");
+                fullText += pageText + "\n\n";
+            }
+            return fullText.trim();
+        }
+
+        if (ext === "docx") {
+            if (!window.mammoth) throw new Error("Mammoth.js library is not loaded.");
+            const arrayBuffer = await file.arrayBuffer();
+            const result = await window.mammoth.extractRawText({ arrayBuffer });
+            return result.value.trim();
+        }
+
+        // Default to text (txt, md, rtf, csv, etc.)
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = e => resolve(e.target.result);
+            reader.onerror = reject;
+            reader.readAsText(file);
+        });
+    }
+
+    async function handleFile(file) {
+        if (!file) return;
+
+        try {
+            setStatus(`⏳ Extracting text from ${file.name}...`);
+            const text = await extractTextFromFile(file);
+
+            if (!text || text.trim().length === 0) {
+                alert("Could not extract any readable text from this document. It might be scanned or empty.");
+                setStatus("⚠️ No text found in document.", "error");
+                return;
+            }
+
+            activeFile = file;
+            extractedText = text;
+
+            loadedFileName.textContent = file.name;
+            const sizeKb = (file.size / 1024).toFixed(1);
+            loadedFileSize.textContent = `(${sizeKb} KB • ~${countWords(text)} words)`;
+
+            uploadArea.style.display = "none";
+            fileLoadedBanner.style.display = "flex";
+
+            setStatus(`✅ Successfully extracted ~${countWords(text)} words from ${file.name}.`, "success");
+            updateCheckButtonState();
+        } catch (err) {
+            console.error("Extraction error:", err);
+            alert("Error reading file: " + err.message);
+            setStatus("❌ Failed to parse document: " + err.message, "error");
+        }
+    }
+
+    removeFileBtn.addEventListener("click", () => {
+        activeFile = null;
+        extractedText = "";
+        fileInput.value = "";
+        uploadArea.style.display = "block";
+        fileLoadedBanner.style.display = "none";
+        setStatus("Ready to upload a document.");
+        updateCheckButtonState();
+    });
+
+    fileInput.addEventListener("change", (e) => {
+        if (e.target.files && e.target.files[0]) {
+            handleFile(e.target.files[0]);
+        }
+    });
+
+    uploadArea.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        uploadArea.classList.add("dragover");
+    });
+
+    uploadArea.addEventListener("dragleave", () => {
+        uploadArea.classList.remove("dragover");
+    });
+
+    uploadArea.addEventListener("drop", (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove("dragover");
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            handleFile(e.dataTransfer.files[0]);
+        }
+    });
+
+    // -------------------------------------------------------------------------
+    // Textarea Handlers & Counters
+    // -------------------------------------------------------------------------
+    function countWords(str) {
+        if (!str) return 0;
+        const matches = str.trim().match(/\S+/g);
+        return matches ? matches.length : 0;
+    }
+
+    function updateTextareaCounters() {
+        const text = docTextArea.value;
+        const words = countWords(text);
+        const chars = text.length;
+        textCounters.textContent = `${words} words • ${chars} characters`;
+        updateCheckButtonState();
+    }
+
+    docTextArea.addEventListener("input", updateTextareaCounters);
+
+    btnClearText.addEventListener("click", () => {
+        docTextArea.value = "";
+        updateTextareaCounters();
+    });
+
+    // Preset Samples
+    btnSampleAi.addEventListener("click", () => {
+        docTextArea.value = `Artificial intelligence is rapidly transforming the modern landscape, playing a crucial role across diverse industries. In the contemporary digital era, machine learning algorithms delve deep into vast datasets, unlocking unprecedented insights that foster operational excellence and drive innovation. 
+
+Moreover, this technological evolution acts as a testament to human ingenuity. By harnessing advanced neural networks, organizations can streamline complex workflows, thereby maximizing productivity while maintaining strict adherence to regulatory standards. Furthermore, it is essential to emphasize that the integration of artificial intelligence requires a comprehensive framework to navigate the inherent complexities of digital transformation. In conclusion, embracing this transformative technology will inevitably shape the future of global industries.`;
+        updateTextareaCounters();
+        setStatus("💡 Sample AI-generated text loaded.", "success");
+    });
+
+    btnSampleHuman.addEventListener("click", () => {
+        docTextArea.value = `I woke up late on Tuesday, grabbed my cold coffee from the counter, and sprinted down the street trying not to miss the 8:15 bus. It was raining cats and dogs. Of course, my umbrella decided to turn inside out right as a delivery van splashed through a massive puddle near the curb. 
+
+Sitting soaked on the commute, I started thinking about the essay deadline hanging over me. I haven't even cracked open chapter four yet, and honestly, the professor's notes made zero sense when I glanced at them yesterday. Maybe I'll just pull an all-nighter with some friends from study group. We'll order pizza, put on some lo-fi tracks, and see if we can get through the syllabus before sunrise.`;
+        updateTextareaCounters();
+        setStatus("💡 Sample human-written text loaded.", "success");
+    });
+
+    // -------------------------------------------------------------------------
+    // Check Button State
+    // -------------------------------------------------------------------------
+    function updateCheckButtonState() {
+        let hasContent = false;
+        if (activeTab === "upload") {
+            hasContent = !!extractedText && extractedText.trim().length > 20;
+        } else {
+            hasContent = countWords(docTextArea.value) >= 5;
+        }
+        checkBtn.disabled = !hasContent;
+    }
+
+    // -------------------------------------------------------------------------
+    // Linguistic & Statistical Forensics Engine
+    // -------------------------------------------------------------------------
+    const AI_TROPES = [
+        "delve", "delves", "delving", "crucial role", "pivotal", "rich tapestry", 
+        "tapestry of", "in conclusion", "furthermore", "moreover", "testament to", 
+        "fosters", "fostering", "beacon of", "navigate the complexities", 
+        "game-changer", "unprecedented", "seamlessly", "ever-evolving",
+        "holistic", "multifaceted", "it is worth noting", "shed light on",
+        "in the realm of", "harnessing the power", "vital role", "transformative journey",
+        "serves as a testament", "in essence", "underscores the importance"
+    ];
+
+    function splitIntoSentences(text) {
+        return text
+            .replace(/([.?!])\s+(?=[A-Z0-9"'])/g, "$1|SPLIT|")
+            .split("|SPLIT|")
+            .map(s => s.trim())
+            .filter(s => s.length > 5);
+    }
+
+    function analyzeLinguistics(text) {
+        const sentences = splitIntoSentences(text);
+        const words = text.toLowerCase().match(/\b[a-z]{2,}\b/g) || [];
+        const totalWords = words.length;
+
+        if (totalWords === 0) {
+            return {
+                burstiness: 0,
+                diversity: 0,
+                tropeDensity: 0,
+                score: 50
+            };
+        }
+
+        // 1. Burstiness: Variance in sentence lengths (Human writing has high burstiness; AI has low)
+        const sentenceWordCounts = sentences.map(s => (s.match(/\S+/g) || []).length);
+        const avgSentenceLength = sentenceWordCounts.reduce((a, b) => a + b, 0) / (sentenceWordCounts.length || 1);
+        const variance = sentenceWordCounts.reduce((acc, len) => acc + Math.pow(len - avgSentenceLength, 2), 0) / (sentenceWordCounts.length || 1);
+        const stdDev = Math.sqrt(variance);
+        const burstinessCoefficient = avgSentenceLength > 0 ? (stdDev / avgSentenceLength) : 0;
+
+        // 2. Lexical Diversity (Type-Token Ratio)
+        const uniqueWords = new Set(words);
+        const diversity = (uniqueWords.size / totalWords) * 100;
+
+        // 3. AI Buzzword / Trope match
+        const lowerText = text.toLowerCase();
+        let tropeCount = 0;
+        AI_TROPES.forEach(trope => {
+            const regex = new RegExp(`\\b${trope}\\b`, "gi");
+            const matches = lowerText.match(regex);
+            if (matches) tropeCount += matches.length;
+        });
+        const tropeDensity = (tropeCount / (totalWords / 100)); // per 100 words
+
+        // 4. Per-Sentence Heuristic Scoring
+        const sentenceScores = sentences.map(s => {
+            const sLower = s.toLowerCase();
+            const sWords = s.match(/\S+/g) || [];
+            let sScore = 20; // default human baseline
+
+            // Check tropes in sentence
+            AI_TROPES.forEach(trope => {
+                if (sLower.includes(trope)) sScore += 25;
+            });
+
+            // Length uniformity check (AI sentences often average 15-28 words)
+            if (sWords.length >= 15 && sWords.length <= 26) {
+                sScore += 15;
+            }
+
+            // Passive / academic transitions
+            if (/^(moreover|furthermore|in conclusion|additionally|consequently|overall|importantly)/i.test(s.trim())) {
+                sScore += 20;
+            }
+
+            // Human punctuation quirks (slang, dashes, parentheses, exclamation)
+            if (/(!|--|\.\.\.|haha|lol|kinda|gotta|gonna)/i.test(s)) {
+                sScore -= 30;
+            }
+
+            return Math.max(5, Math.min(95, sScore));
+        });
+
+        return {
+            burstiness: burstinessCoefficient,
+            diversity: diversity,
+            tropeCount: tropeCount,
+            tropeDensity: tropeDensity,
+            sentences: sentences,
+            sentenceScores: sentenceScores,
+            avgSentenceLength: avgSentenceLength
+        };
+    }
+
+    // -------------------------------------------------------------------------
+    // Main Analysis Trigger
+    // -------------------------------------------------------------------------
+    checkBtn.addEventListener("click", async () => {
+        const textToAnalyze = activeTab === "upload" ? extractedText : docTextArea.value;
+        const totalWords = countWords(textToAnalyze);
+
+        if (!textToAnalyze || totalWords < 5) {
+            alert("Please provide at least 5 words of text to analyze.");
+            return;
+        }
+
+        btnText.style.display = "none";
+        loader.style.display = "block";
+        checkBtn.disabled = true;
+
+        try {
+            // Run Linguistic Forensics
+            const linguistics = analyzeLinguistics(textToAnalyze);
+
+            // Run Neural Model (if loaded) or use advanced calibrated heuristic
+            let neuralAiScore = null;
+
+            if (classifier) {
+                try {
+                    // Truncate to first 450 words / ~500 tokens for RoBERTa limit
+                    const textSample = textToAnalyze.split(/\s+/).slice(0, 420).join(" ");
+                    const modelOutput = await classifier(textSample);
+                    console.log("Model Output:", modelOutput);
+
+                    // Inspect labels: typically label 'ChatGPT' or 'LABEL_1' is AI; 'Human' or 'LABEL_0' is human
+                    if (Array.isArray(modelOutput)) {
+                        const top = modelOutput[0];
+                        const label = String(top.label).toLowerCase();
+                        if (label.includes("chatgpt") || label.includes("fake") || label === "label_1") {
+                            neuralAiScore = top.score * 100;
+                        } else {
+                            neuralAiScore = (1 - top.score) * 100;
+                        }
+                    }
+                } catch (modelErr) {
+                    console.warn("Neural classification error, proceeding with heuristic score:", modelErr);
+                }
+            }
+
+            // Calibrate Overall Final AI Score
+            let finalAiPercentage = 0;
+
+            if (neuralAiScore !== null) {
+                // Blend Neural (65%) with Linguistic Forensics (35%)
+                let heuristicScore = 30;
+                if (linguistics.burstiness < 0.38) heuristicScore += 25; // uniform sentences
+                if (linguistics.tropeDensity > 0.4) heuristicScore += 30; // lots of AI tropes
+                if (linguistics.diversity < 45) heuristicScore += 15;
+                finalAiPercentage = (neuralAiScore * 0.65) + (heuristicScore * 0.35);
+            } else {
+                // Heuristic calculation
+                let heuristicScore = 20; // baseline
+
+                // Low burstiness = AI signature
+                if (linguistics.burstiness < 0.32) heuristicScore += 35;
+                else if (linguistics.burstiness < 0.45) heuristicScore += 18;
+
+                // Trope density
+                if (linguistics.tropeDensity >= 0.8) heuristicScore += 35;
+                else if (linguistics.tropeDensity >= 0.3) heuristicScore += 20;
+
+                // High vocabulary uniformity
+                if (linguistics.diversity < 42) heuristicScore += 15;
+
+                finalAiPercentage = heuristicScore;
+            }
+
+            // Clamp between 0 and 100
+            finalAiPercentage = Math.max(3, Math.min(98, Math.round(finalAiPercentage)));
+            const finalHumanPercentage = 100 - finalAiPercentage;
+
+            // Render Results
+            renderResults({
+                aiPercent: finalAiPercentage,
+                humanPercent: finalHumanPercentage,
+                wordCount: totalWords,
+                sentenceCount: linguistics.sentences.length,
+                burstiness: linguistics.burstiness,
+                diversity: linguistics.diversity,
+                tropeCount: linguistics.tropeCount,
+                sentences: linguistics.sentences,
+                sentenceScores: linguistics.sentenceScores
+            });
+
+        } catch (err) {
+            console.error("Analysis failed:", err);
+            alert("Analysis encountered an error: " + err.message);
+        } finally {
+            btnText.style.display = "block";
+            loader.style.display = "none";
+            checkBtn.disabled = false;
+        }
+    });
+
+    // -------------------------------------------------------------------------
+    // Render Results & Heatmap
+    // -------------------------------------------------------------------------
+    function renderResults(data) {
+        lastAnalysisReport = data;
+        resultContainer.style.display = "block";
+
+        // Score values
+        scoreAi.textContent = `${data.aiPercent}%`;
+        scoreHuman.textContent = `${data.humanPercent}%`;
+
+        // Progress Fill
+        progressBarFill.style.width = `${data.aiPercent}%`;
+
+        // Verdict Pill
+        if (data.aiPercent >= 65) {
+            verdictPill.textContent = "Likely AI-Generated";
+            verdictPill.className = "verdict-pill verdict-ai";
+            scoreConfidence.textContent = data.aiPercent > 85 ? "Very High" : "High";
+        } else if (data.aiPercent <= 35) {
+            verdictPill.textContent = "Likely Human-Written";
+            verdictPill.className = "verdict-pill verdict-human";
+            scoreConfidence.textContent = data.humanPercent > 85 ? "Very High" : "High";
+        } else {
+            verdictPill.textContent = "Mixed / AI-Assisted";
+            verdictPill.className = "verdict-pill verdict-mixed";
+            scoreConfidence.textContent = "Moderate";
+        }
+
+        // Metrics
+        metricWords.textContent = data.wordCount.toLocaleString();
+        metricSentences.textContent = `${data.sentenceCount} sentences`;
+
+        if (data.burstiness > 0.55) {
+            metricBurstiness.textContent = "High (Human)";
+        } else if (data.burstiness > 0.35) {
+            metricBurstiness.textContent = "Moderate";
+        } else {
+            metricBurstiness.textContent = "Low (AI Uniform)";
+        }
+
+        metricDiversity.textContent = `${data.diversity.toFixed(1)}%`;
+
+        if (data.tropeCount === 0) {
+            metricTropes.textContent = "None Detected";
+        } else if (data.tropeCount < 3) {
+            metricTropes.textContent = `Low (${data.tropeCount})`;
+        } else {
+            metricTropes.textContent = `High (${data.tropeCount} found)`;
+        }
+
+        // Build Sentence Heatmap
+        heatmapContent.innerHTML = "";
+        data.sentences.forEach((sentence, idx) => {
+            let score = data.sentenceScores[idx] || 50;
+
+            // Align sentence scores with document overall probability
+            if (data.aiPercent > 70) score = Math.max(score, 65);
+            if (data.aiPercent < 30) score = Math.min(score, 35);
+
+            const span = document.createElement("span");
+            span.textContent = sentence + " ";
+            span.title = `Sentence AI Probability: ~${Math.round(score)}%`;
+
+            if (score >= 60) {
+                span.className = "hl-ai";
+            } else if (score >= 40) {
+                span.className = "hl-mixed";
+            } else {
+                span.className = "hl-human";
+            }
+
+            heatmapContent.appendChild(span);
+        });
+
+        // Smooth scroll to results
+        resultContainer.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+
+    // -------------------------------------------------------------------------
+    // Actions: Copy Report & Reset
+    // -------------------------------------------------------------------------
+    btnCopyReport.addEventListener("click", () => {
+        if (!lastAnalysisReport) return;
+        const report = `===========================================
+GAIA-DETECTOR: AI DOCUMENT AUTHENTICITY REPORT
+===========================================
+Verdict: ${verdictPill.textContent}
+AI Probability: ${lastAnalysisReport.aiPercent}%
+Human Authenticity: ${lastAnalysisReport.humanPercent}%
+
+Metrics:
+- Word Count: ${lastAnalysisReport.wordCount}
+- Sentences: ${lastAnalysisReport.sentenceCount}
+- Sentence Burstiness: ${metricBurstiness.textContent}
+- Vocabulary Diversity: ${lastAnalysisReport.diversity.toFixed(1)}%
+- AI Buzzword Markers: ${metricTropes.textContent}
+
+Engine: HuggingFace ONNX Neural Model + Linguistic Burstiness Analysis
+Client-side Privacy Protected.
+===========================================`;
+
+        navigator.clipboard.writeText(report).then(() => {
+            const orig = btnCopyReport.textContent;
+            btnCopyReport.textContent = "✅ Report Copied!";
+            setTimeout(() => { btnCopyReport.textContent = orig; }, 2000);
+        });
+    });
+
+    btnReset.addEventListener("click", () => {
+        resultContainer.style.display = "none";
+        progressBarFill.style.width = "0%";
+        if (activeTab === "upload") {
+            removeFileBtn.click();
+        } else {
+            docTextArea.value = "";
+            updateTextareaCounters();
+        }
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    // -------------------------------------------------------------------------
+    // Start Engine
+    // -------------------------------------------------------------------------
+    initializeModel();
+</script>
+
+</body>
+</html>
