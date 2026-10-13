@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Image Detector</title>
+
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --container-bg: rgba(30, 41, 59, 0.78);
+            --text-color: #f8fafc;
+            --accent-color: #3b82f6;
+            --accent-hover: #2563eb;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --error-color: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            color: var(--text-color);
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: var(--container-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 40px;
+            max-width: 560px;
+            width: 100%;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            margin: 0 0 10px;
+            font-size: 28px;
+            font-weight: 700;
+            text-align: center;
+            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #94a3b8;
+            margin: 0 0 20px;
+            font-size: 15px;
+        }
+
+        .status-badge {
+            background: rgba(59, 130, 246, 0.1);
+            color: #60a5fa;
+            padding: 12px 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 600;
+            margin-bottom: 20px;
+            font-size: 14px;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            line-height: 1.4;
+        }
+
+        .status-badge.success {
+            color: var(--success-color);
+            background: rgba(16, 185, 129, 0.1);
+            border-color: rgba(16, 185, 129, 0.2);
+        }
+
+        .status-badge.error {
+            color: var(--error-color);
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.2);
+        }
+
+        .upload-area {
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .upload-area:hover,
+        .upload-area.dragover {
+            border-color: var(--accent-color);
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .upload-area input[type="file"] {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .upload-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+
+        #upload-text {
+            color: #cbd5e1;
+            word-break: break-word;
+        }
+
+        .btn {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 14px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            width: 100%;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn:hover:not(:disabled) {
+            background: var(--accent-hover);
+        }
+
+        .btn:disabled {
+            background: #475569;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        #preview-container {
+            margin-top: 20px;
+            border-radius: 12px;
+            overflow: hidden;
+            display: none;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        #preview {
+            width: 100%;
+            max-height: 300px;
+            object-fit: contain;
+            display: block;
+        }
+
+        #result-container {
+            margin-top: 25px;
+            display: none;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .result-title {
+            font-size: 14px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .result-value {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+
+        .ai-percentage {
+            color: var(--warning-color);
+        }
+
+        .real-percentage {
+            color: var(--success-color);
+        }
+
+        .progress-bar-bg {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success-color), var(--error-color));
+            width: 0%;
+            transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .loader {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        .small-note {
+            margin-top: 14px;
+            color: #94a3b8;
+            font-size: 12px;
+            line-height: 1.5;
+            text-align: center;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 25px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+    <h1>AI Image Detector</h1>
+    <p class="subtitle">Browser-based AI analysis • No API key required</p>
+
+    <div id="status" class="status-badge">
+        ⏳ Loading AI model. The first load can take a few minutes...
+    </div>
+
+    <div id="uploadArea" class="upload-area">
+        <div class="upload-icon">📸</div>
+        <div id="upload-text">Click or drag an image here</div>
+
+        <input
+            type="file"
+            id="imageInput"
+            accept="image/png,image/jpeg,image/jpg,image/webp"
+            disabled
+        >
+    </div>
+
+    <div id="preview-container">
+        <img id="preview" alt="Image preview">
+    </div>
+
+    <button id="checkBtn" class="btn" disabled>
+        <span id="btn-text">Analyze Image</span>
+        <div id="loader" class="loader"></div>
+    </button>
+
+    <div id="result-container">
+        <div class="result-title">Analysis Result</div>
+
+        <div id="result-text" class="result-value"></div>
+
+        <div style="
+            display:flex;
+            justify-content:space-between;
+            font-size:12px;
+            margin-bottom:5px;
+            color:#cbd5e1;
+        ">
+            <span>0% Real</span>
+            <span>100% AI</span>
+        </div>
+
+        <div class="progress-bar-bg">
+            <div id="progress-fill" class="progress-bar-fill"></div>
+        </div>
+
+        <div
+            id="ai-percent-text"
+            style="
+                text-align:center;
+                font-size:14px;
+                font-weight:600;
+                margin-top:10px;
+                color:#f8fafc;
+            "
+        ></div>
+    </div>
+
+    <div class="small-note">
+        Note: this demo uses CLIP zero-shot classification. It is a demonstration,
+        not a forensic-grade AI-image detector.
+    </div>
+</div>
+
+<script type="module">
+
+    /*
+     * IMPORTANT FIX:
+     * The old code used:
+     * @xenova/transformers@2.17.1
+     *
+     * This version uses the current package name:
+     * @huggingface/transformers
+     */
+
+    import {
+        pipeline,
+        env
+    } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1";
+
+    // We want the pretrained model from Hugging Face.
+    env.allowLocalModels = false;
+    env.allowRemoteModels = true;
+
+    // Cache downloaded model files in the browser.
+    env.useBrowserCache = true;
+
+
+    // -----------------------------
+    // DOM ELEMENTS
+    // -----------------------------
+
+    const statusEl = document.getElementById("status");
+    const imageInput = document.getElementById("imageInput");
+    const checkBtn = document.getElementById("checkBtn");
+    const uploadArea = document.getElementById("uploadArea");
+    const uploadText = document.getElementById("upload-text");
+
+    const previewContainer = document.getElementById("preview-container");
+    const preview = document.getElementById("preview");
+
+    const resultContainer = document.getElementById("result-container");
+    const resultText = document.getElementById("result-text");
+    const progressFill = document.getElementById("progress-fill");
+    const aiPercentText = document.getElementById("ai-percent-text");
+
+    const btnText = document.getElementById("btn-text");
+    const loader = document.getElementById("loader");
+
+
+    let classifier = null;
+    let selectedFile = null;
+
+
+    // -----------------------------
+    // STATUS HELPERS
+    // -----------------------------
+
+    function setStatus(message, type = "") {
+        statusEl.textContent = message;
+        statusEl.className = "status-badge";
+
+        if (type) {
+            statusEl.classList.add(type);
+        }
+    }
+
+
+    // -----------------------------
+    // LOAD MODEL
+    // -----------------------------
+
+    async function initializeModel() {
+
+        try {
+
+            setStatus(
+                "⏳ Downloading AI model from Hugging Face... First load may take a few minutes."
+            );
+
+            /*
+             * CLIP is a zero-shot image classification model.
+             * It runs inside the browser using Transformers.js.
+             */
+            classifier = await pipeline(
+                "zero-shot-image-classification",
+                "Xenova/clip-vit-base-patch32"
+            );
+
+
+            setStatus(
+                "✅ AI model loaded successfully. You can upload an image.",
+                "success"
+            );
+
+            imageInput.disabled = false;
+
+
+        } catch (error) {
+
+            console.error("MODEL LOAD ERROR:", error);
+
+            setStatus(
+                "❌ Could not load the AI model. Open the browser Console (F12) for details.",
+                "error"
+            );
+
+            /*
+             * Give a useful message instead of the generic
+             * "Network error: Failed to fetch".
+             */
+            console.error(`
+Possible causes:
+
+1. Internet connection is unavailable.
+2. Hugging Face is blocked by your network.
+3. An ad blocker/privacy extension is blocking Hugging Face.
+4. The page was opened incorrectly.
+5. Browser security/CORS restrictions.
+6. The model download was interrupted.
+
+Recommended:
+Run this project through VS Code Live Server or another localhost server.
+Do NOT simply double-click the HTML file.
+            `);
+        }
+    }
+
+
+    // -----------------------------
+    // SELECT IMAGE
+    // -----------------------------
+
+    function handleFile(file) {
+
+        if (!file) {
+            return;
+        }
+
+        if (!file.type.startsWith("image/")) {
+            alert("Please select a valid image file.");
+            return;
+        }
+
+        selectedFile = file;
+
+        const objectUrl = URL.createObjectURL(file);
+
+        preview.onload = () => {
+            URL.revokeObjectURL(objectUrl);
+        };
+
+        preview.src = objectUrl;
+
+        previewContainer.style.display = "block";
+
+        uploadText.textContent = file.name;
+
+        resultContainer.style.display = "none";
+
+        progressFill.style.width = "0%";
+        aiPercentText.textContent = "";
+
+        if (classifier) {
+            checkBtn.disabled = false;
+        }
+    }
+
+
+    imageInput.addEventListener("change", (event) => {
+
+        const file = event.target.files[0];
+
+        handleFile(file);
+    });
+
+
+    // -----------------------------
+    // DRAG & DROP
+    // -----------------------------
+
+    uploadArea.addEventListener("dragover", (event) => {
+
+        event.preventDefault();
+
+        uploadArea.classList.add("dragover");
+    });
+
+
+    uploadArea.addEventListener("dragleave", () => {
+
+        uploadArea.classList.remove("dragover");
+    });
+
+
+    uploadArea.addEventListener("drop", (event) => {
+
+        event.preventDefault();
+
+        uploadArea.classList.remove("dragover");
+
+        const file = event.dataTransfer.files[0];
+
+        handleFile(file);
+    });
+
+
+    // -----------------------------
+    // ANALYZE IMAGE
+    // -----------------------------
+
+    checkBtn.addEventListener("click", async () => {
+
+        if (!selectedFile || !classifier) {
+            return;
+        }
+
+
+        btnText.style.display = "none";
+        loader.style.display = "block";
+
+        checkBtn.disabled = true;
+
+
+        try {
+
+            /*
+             * IMPORTANT:
+             *
+             * The old code passed preview.src, which is a blob URL.
+             * Passing the actual File object is more reliable.
+             */
+            const labels = [
+                "a real photograph taken by a camera",
+                "an AI generated image"
+            ];
+
+
+            const results = await classifier(
+                selectedFile,
+                labels
+            );
+
+
+            console.log("MODEL RESULT:", results);
+
+
+            // Find AI result.
+            const aiResult = results.find(
+                item => item.label === "an AI generated image"
+            );
+
+
+            let aiPercentage = 0;
+
+            if (aiResult) {
+                aiPercentage = aiResult.score * 100;
+            }
+
+
+            // Keep percentage between 0 and 100.
+            aiPercentage = Math.max(
+                0,
+                Math.min(100, aiPercentage)
+            );
+
+
+            // -----------------------------
+            // DISPLAY RESULT
+            // -----------------------------
+
+            resultContainer.style.display = "block";
+
+
+            if (aiPercentage >= 60) {
+
+                resultText.textContent = "Likely AI Generated";
+
+                resultText.className =
+                    "result-value ai-percentage";
+
+            } else {
+
+                resultText.textContent = "Likely Real Image";
+
+                resultText.className =
+                    "result-value real-percentage";
+            }
+
+
+            // Animate progress bar.
+            requestAnimationFrame(() => {
+
+                progressFill.style.width =
+                    `${aiPercentage}%`;
+
+            });
+
+
+            aiPercentText.textContent =
+                `${aiPercentage.toFixed(1)}% AI Probability`;
+
+
+        } catch (error) {
+
+            console.error("IMAGE ANALYSIS ERROR:", error);
+
+            resultContainer.style.display = "block";
+
+            resultText.textContent =
+                "Analysis failed";
+
+            resultText.className =
+                "result-value ai-percentage";
+
+            aiPercentText.textContent =
+                "Could not process this image. Check F12 → Console.";
+
+            alert(
+                "Analysis failed.\n\n" +
+                error.message +
+                "\n\nOpen F12 → Console for the complete error."
+            );
+
+
+        } finally {
+
+            btnText.style.display = "block";
+
+            loader.style.display = "none";
+
+            checkBtn.disabled = false;
+        }
+
+    });
+
+
+    // -----------------------------
+    // START MODEL
+    // -----------------------------
+
+    initializeModel();
+
+</script>
+
+</body>
+</html>
