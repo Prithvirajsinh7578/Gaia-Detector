@@ -1,4 +1,4 @@
-﻿import { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fadeUp } from '../../utils/animations';
 import { UPLOAD_TABS } from '../../constants/constants';
@@ -6,7 +6,7 @@ import SectionHeading from '../SectionHeading/SectionHeading';
 import Badge from '../Badge/Badge';
 import { HiOutlineCloudUpload, HiOutlineDocumentText, HiOutlinePhotograph, HiOutlineVideoCamera, HiOutlineDocumentSearch } from 'react-icons/hi';
 
-const tabIcons = {
+export const tabIcons = {
   text: HiOutlineDocumentText,
   image: HiOutlinePhotograph,
   video: HiOutlineVideoCamera,

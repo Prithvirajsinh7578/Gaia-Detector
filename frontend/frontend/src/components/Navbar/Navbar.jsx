@@ -1,17 +1,26 @@
-﻿import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HiMenuAlt3, HiX } from 'react-icons/hi';
 import { useScrollPosition } from '../../hooks/useScrollPosition';
 import { NAV_LINKS } from '../../constants/constants';
 import Button from '../Button/Button';
+import { useAuth } from '../../context/AuthContext';
+import { ROUTES } from '../../constants/routes';
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { isScrolled } = useScrollPosition();
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   const isActive = (path) => location.pathname === path;
+
+  const handleLogout = async () => {
+    await logout();
+    navigate(ROUTES.HOME);
+  };
 
   return (
     <motion.nav
@@ -60,12 +69,68 @@ export default function Navbar() {
                 {link.name}
               </Link>
             ))}
+            {user && (
+              <>
+                <Link
+                  to={ROUTES.DASHBOARD}
+                  className={`
+                    px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300
+                    ${isActive(ROUTES.DASHBOARD)
+                      ? 'text-primary-cyan bg-primary-cyan/10'
+                      : 'text-gray-400 hover:text-white hover:bg-white/5'
+                    }
+                  `}
+                >
+                  Dashboard
+                </Link>
+                <Link
+                  to={ROUTES.UPLOAD}
+                  className={`
+                    px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300
+                    ${isActive(ROUTES.UPLOAD)
+                      ? 'text-primary-cyan bg-primary-cyan/10'
+                      : 'text-gray-400 hover:text-white hover:bg-white/5'
+                    }
+                  `}
+                >
+                  Detect
+                </Link>
+                <Link
+                  to={ROUTES.HISTORY}
+                  className={`
+                    px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300
+                    ${isActive(ROUTES.HISTORY)
+                      ? 'text-primary-cyan bg-primary-cyan/10'
+                      : 'text-gray-400 hover:text-white hover:bg-white/5'
+                    }
+                  `}
+                >
+                  History
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center gap-3">
-            <Button variant="ghost" size="sm" to="#">Login</Button>
-            <Button variant="primary" size="sm" to="#">Register</Button>
+            {user ? (
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-gray-400">
+                  Hi, <span className="text-white font-medium">{user.name || user.email}</span>
+                </span>
+                <button
+                  onClick={handleLogout}
+                  className="px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+                >
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <>
+                <Button variant="ghost" size="sm" to={ROUTES.LOGIN}>Login</Button>
+                <Button variant="primary" size="sm" to={ROUTES.REGISTER}>Register</Button>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Toggle */}
@@ -106,10 +171,46 @@ export default function Navbar() {
                   {link.name}
                 </Link>
               ))}
-              <div className="flex gap-3 pt-4 border-t border-white/10 mt-2">
-                <Button variant="secondary" size="sm" to="#" className="flex-1">Login</Button>
-                <Button variant="primary" size="sm" to="#" className="flex-1">Register</Button>
-              </div>
+              {user ? (
+                <div className="pt-2 border-t border-white/10 mt-2 space-y-1">
+                  <Link
+                    to={ROUTES.DASHBOARD}
+                    onClick={() => setMobileOpen(false)}
+                    className="block px-4 py-2 text-sm text-gray-300 hover:text-white"
+                  >
+                    Dashboard
+                  </Link>
+                  <Link
+                    to={ROUTES.UPLOAD}
+                    onClick={() => setMobileOpen(false)}
+                    className="block px-4 py-2 text-sm text-gray-300 hover:text-white"
+                  >
+                    Detect
+                  </Link>
+                  <Link
+                    to={ROUTES.HISTORY}
+                    onClick={() => setMobileOpen(false)}
+                    className="block px-4 py-2 text-sm text-gray-300 hover:text-white"
+                  >
+                    History
+                  </Link>
+                  <button
+                    onClick={() => { setMobileOpen(false); handleLogout(); }}
+                    className="w-full text-left px-4 py-2 text-sm text-red-400 hover:text-red-300"
+                  >
+                    Logout ({user.name || user.email})
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-3 pt-4 border-t border-white/10 mt-2">
+                  <Button variant="secondary" size="sm" to={ROUTES.LOGIN} className="flex-1" onClick={() => setMobileOpen(false)}>
+                    Login
+                  </Button>
+                  <Button variant="primary" size="sm" to={ROUTES.REGISTER} className="flex-1" onClick={() => setMobileOpen(false)}>
+                    Register
+                  </Button>
+                </div>
+              )}
             </div>
           </motion.div>
         )}
