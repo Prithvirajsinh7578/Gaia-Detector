@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ArrowDown, ArrowUpRight, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DetectionWorkspace } from "@/components/detection-workspace";
-import botanical from "@/assets/gaia-botanical.jpg";
+import editorialPaper from "@/assets/gaia-editorial-paper.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({ meta: [
@@ -30,8 +30,8 @@ function Index() {
       </header>
       <main>
         <section className="intro" aria-labelledby="intro-title">
-          <img src={botanical} width={1600} height={640} alt="" className="botanical" fetchPriority="high" />
-          <div className="intro-content"><p className="eyebrow mb-5 flex items-center gap-2"><span className="inline-block size-1.5 rounded-full bg-foreground" />GAIA DETECTOR</p><h1 id="intro-title">Know what you're<br />looking at.</h1><p className="mt-5 text-base text-muted-foreground">Analyze text, images, and videos.</p><Button onClick={startAnalysis} className="mt-7 h-12 gap-6 px-5">Start Analysis<ArrowDown className="size-4" /></Button></div>
+          <img src={editorialPaper} width={1600} height={640} alt="" className="editorial-paper" fetchPriority="high" />
+          <div className="intro-content"><p className="eyebrow mb-5 flex items-center gap-2"><span className="inline-block size-1.5 rounded-full bg-foreground" />GAIA DETECTOR</p><h1 id="intro-title">Know what you're<br /><em>looking at.</em></h1><p className="mt-5 text-base text-muted-foreground">Analyze text, images, and videos.</p><Button onClick={startAnalysis} className="mt-7 h-12 gap-6 px-5">Start Analysis<ArrowDown className="size-4" /></Button></div>
         </section>
         <div className="section-divider"><span /><span className="signal-line" /><span /></div>
         <DetectionWorkspace />
