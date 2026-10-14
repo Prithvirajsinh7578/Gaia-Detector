@@ -22,11 +22,11 @@ export function validateFile(file: File, mode: "image" | "video"): string | null
 
 export function parseDetectionResult(data: unknown): DetectionResult {
   if (!data || typeof data !== "object") throw new Error("The detector returned an invalid result.");
-  const result = data as Record<string, unknown>;
+  const result = data as { verdict?: unknown; score?: unknown };
   if (result.verdict !== "ai" && result.verdict !== "human" && result.verdict !== "inconclusive") throw new Error("The detector returned an invalid result.");
   if (result.score !== undefined) {
     if (!result.score || typeof result.score !== "object") throw new Error("The detector returned an invalid score.");
-    const score = result.score as Record<string, unknown>;
+    const score = result.score as { value?: unknown; label?: unknown };
     if (typeof score.value !== "number" || !Number.isFinite(score.value) || score.value < 0 || score.value > 100 || typeof score.label !== "string" || !score.label.trim()) throw new Error("The detector returned an invalid score.");
     return { verdict: result.verdict, score: { value: score.value, label: score.label } };
   }
