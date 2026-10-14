@@ -98,7 +98,7 @@ export function DetectionWorkspace() {
               </TabsContent>
             ))}
           </Tabs>
-          <div className="analysis-actions grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3"><span className="text-xs text-muted-foreground">{mode === "text" ? "Text stays here until you analyze." : "Local preview only. No file uploaded."}</span><Button onClick={analyze} disabled={busy || (mode === "text" ? !text.trim() : !file)} className="h-12 px-6">{busy ? <><LoaderCircle className="animate-spin" />Analyzing…</> : <>Analyze {mode}<ArrowRight /></>}</Button></div>
+          <div className="analysis-actions grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3"><span className="text-xs text-muted-foreground">{mode === "text" ? "Text stays here until you analyze." : "Local preview only. No file uploaded."}</span><Button onClick={analyze} disabled={busy || (mode === "text" ? !text.trim() : !file)} className="h-12 px-6">{busy ? <><LoaderCircle />Analyzing…</> : <>Analyze {mode}<ArrowRight /></>}</Button></div>
         </div>
         <aside className={`result-panel ${result ? "has-result" : ""}`} aria-labelledby="result-title" aria-busy={busy}>
           <div className="flex items-center justify-between"><h3 id="result-title" className="text-sm font-medium">Analysis result</h3><ScanLine className="size-4 text-panel-muted" /></div>
