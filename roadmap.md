@@ -1,6 +1,6 @@
 # GAIA Detector
-- [ ] Refine the existing interface with warm editorial colors, serif headings, paper-inspired imagery, and natural microinteractions.
-- [ ] Recheck all detector interactions and responsive layouts after refinement.
+- [x] Refine the existing interface with warm editorial colors, serif headings, textured paper-inspired imagery, and natural microinteractions.
+- [x] Recheck all detector interactions and responsive layouts after refinement; four tests passed, with browser checks for previews, removal, validation, drag-drop, keyboard tabs, unavailable states and reduced motion.
 - [x] Inspect project and mandatory design resources.
 - [x] Build aligned text, image, and video workspace with validation and previews.
 - [x] Clearly identify missing detection services; no existing endpoints or connections found.
