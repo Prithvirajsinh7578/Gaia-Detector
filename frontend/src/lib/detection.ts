@@ -1,4 +1,26 @@
 export type DetectionMode = "text" | "image" | "video";
+
+export type ModelResult = {
+  id: string;
+  name: string;
+  category?: string;
+  verdict?: string;
+  aiProbability?: number;
+  confidence?: string;
+  latencyMs?: number;
+  status?: string;
+  details?: Record<string, any>;
+};
+
+export type ConsensusInfo = {
+  agreement?: string;
+  agreementScore?: number;
+  activeDetectors?: number;
+  totalDetectors?: number;
+  discrepancy?: number;
+  inconclusiveReason?: string;
+};
+
 export type DetectionResult = {
   verdict: "ai" | "human" | "inconclusive";
   score?: { value: number; label: string };
@@ -6,6 +28,10 @@ export type DetectionResult = {
   model?: string;
   processingMs?: number;
   evidence?: string[];
+  models?: ModelResult[];
+  consensus?: ConsensusInfo;
+  features?: Record<string, number | string>;
+  details?: Record<string, any>;
 };
 
 // Verified backend proxy routes
@@ -19,14 +45,12 @@ export const fileRules = {
   image: {
     types: ["image/jpeg", "image/png", "image/webp"],
     extensions: ["jpg", "jpeg", "png", "webp"],
-    maxBytes: 20 * 1024 * 1024,
-    label: "JPG, PNG, WEBP · Up to 20 MB",
+    label: "JPG, PNG, WEBP · No size limit",
   },
   video: {
     types: ["video/mp4", "video/webm", "video/quicktime"],
     extensions: ["mp4", "webm", "mov"],
-    maxBytes: 100 * 1024 * 1024,
-    label: "MP4, WEBM, MOV · Up to 100 MB",
+    label: "MP4, WEBM, MOV · No size limit",
   },
 };
 
@@ -37,7 +61,6 @@ export function validateFile(file: File, mode: "image" | "video"): string | null
   const extMatches = rules.extensions.includes(extension);
   if (!typeMatches && !extMatches) return `Choose a supported ${mode} file.`;
   if (file.size === 0) return "This file is empty.";
-  if (file.size > rules.maxBytes) return `File too large. Maximum ${mode === "image" ? "20" : "100"} MB.`;
   return null;
 }
 
@@ -75,6 +98,8 @@ export function parseDetectionResult(data: unknown): DetectionResult {
     let scoreVal: number | undefined;
     if (typeof raw.details?.probability === "number") {
       scoreVal = raw.details.probability;
+    } else if (typeof raw.details?.ai_probability === "number") {
+      scoreVal = raw.details.ai_probability;
     } else if (typeof raw.details?.ai_score_percent === "number") {
       scoreVal = raw.details.ai_score_percent;
     } else if (typeof raw.confidence === "number") {
@@ -123,6 +148,78 @@ export function parseDetectionResult(data: unknown): DetectionResult {
 
   if (cleanEvidence.length > 0) {
     parsed.evidence = cleanEvidence;
+  }
+
+  // 7. Ensemble Models Breakdown
+  const models: ModelResult[] = [];
+  const indDetectors = raw.details?.individual_detectors;
+  if (indDetectors && typeof indDetectors === "object") {
+    for (const [key, val] of Object.entries(indDetectors)) {
+      if (val && typeof val === "object") {
+        const m = val as Record<string, any>;
+        const prob = typeof m.ai_probability === "number" ? Math.round(m.ai_probability * 10) / 10 : undefined;
+        models.push({
+          id: key,
+          name: m.name || key,
+          category: m.category,
+          verdict: m.verdict,
+          aiProbability: prob,
+          confidence: m.confidence,
+          latencyMs: typeof m.latency_ms === "number" ? Math.round(m.latency_ms) : undefined,
+          status: m.status,
+          details: m.details || m.metadata,
+        });
+      }
+    }
+  } else if (Array.isArray(raw.details?.raw_scores)) {
+    for (const item of raw.details.raw_scores) {
+      if (item && typeof item === "object") {
+        const isAI = String(item.label || "").toLowerCase().includes("ai");
+        models.push({
+          id: isAI ? "clip_ai" : "clip_real",
+          name: item.label,
+          verdict: isAI ? "AI Generated" : "Real Photo",
+          aiProbability: Math.round((Number(item.score) || 0) * 1000) / 10,
+          status: "success",
+        });
+      }
+    }
+  }
+
+  if (models.length > 0) {
+    parsed.models = models;
+  }
+
+  // 8. Consensus Information
+  if (raw.details?.consensus && typeof raw.details.consensus === "object") {
+    const c = raw.details.consensus as Record<string, any>;
+    parsed.consensus = {
+      agreement: c.agreement,
+      agreementScore: typeof c.agreement_score === "number" ? c.agreement_score : undefined,
+      activeDetectors: c.active_detectors,
+      totalDetectors: c.total_detectors,
+      discrepancy: typeof c.discrepancy === "number" ? Math.round(c.discrepancy * 10) / 10 : undefined,
+      inconclusiveReason: c.inconclusive_reason || undefined,
+    };
+  }
+
+  // 9. Quantitative Feature Metrics
+  const rawFeatures = raw.details?.features || raw.details?.summary_features || raw.details?.detailed_features;
+  if (rawFeatures && typeof rawFeatures === "object") {
+    const featMap: Record<string, number | string> = {};
+    for (const [k, v] of Object.entries(rawFeatures)) {
+      if (typeof v === "number") {
+        featMap[k] = Math.round(v * 100) / 100;
+      } else if (typeof v === "string" || typeof v === "boolean") {
+        featMap[k] = String(v);
+      }
+    }
+    parsed.features = featMap;
+  }
+
+  // 10. Raw Details
+  if (raw.details && typeof raw.details === "object") {
+    parsed.details = raw.details;
   }
 
   return parsed;

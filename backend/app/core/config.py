@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     BACKEND_HOST: str = Field(default="0.0.0.0")
     BACKEND_PORT: int = Field(default=8000)
     APP_ENV: str = Field(default="development")
-    MAX_UPLOAD_SIZE_MB: int = Field(default=50)
+    MAX_UPLOAD_SIZE_MB: int = Field(default=10240)
 
     @property
     def cors_origins_list(self) -> List[str]:

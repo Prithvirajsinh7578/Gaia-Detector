@@ -16,15 +16,7 @@ async def upload_file(
     type: str = Form(default="image"),
     current_user: dict = Depends(get_current_user_optional)
 ):
-    # Check max file size
     contents = await file.read()
-    size_bytes = len(contents)
-    max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
-    if size_bytes > max_bytes:
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail=f"File exceeds maximum allowed size of {settings.MAX_UPLOAD_SIZE_MB}MB"
-        )
 
     upload_id = str(uuid.uuid4())
     unique_filename = f"{int(datetime.now().timestamp() * 1000)}-{file.filename}"

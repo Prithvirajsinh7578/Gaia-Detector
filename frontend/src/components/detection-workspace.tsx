@@ -134,8 +134,8 @@ export function DetectionWorkspace() {
             <TabsContent value="text" className="mt-0">
               <div className="input-area">
                 <div className="flex items-center justify-between gap-4"><label htmlFor="analysis-text" className="text-sm font-medium">Your text</label><Button variant="ghost" size="sm" onClick={clear} disabled={!text} className="h-11 text-muted-foreground">Clear <X className="size-3" /></Button></div>
-                <textarea id="analysis-text" value={text} maxLength={50000} onChange={event => { invalidate(); setText(event.target.value); }} placeholder="Paste your text here…" className="text-editor" spellCheck={false} />
-                <div className="flex justify-between gap-4 text-xs text-muted-foreground"><span>{words.toLocaleString()} {words === 1 ? "word" : "words"}</span><span>{text.length.toLocaleString()} / 50,000 characters</span></div>
+                <textarea id="analysis-text" value={text} onChange={event => { invalidate(); setText(event.target.value); }} placeholder="Paste your text here…" className="text-editor" spellCheck={false} />
+                <div className="flex justify-between gap-4 text-xs text-muted-foreground"><span>{words.toLocaleString()} {words === 1 ? "word" : "words"}</span><span>{text.length.toLocaleString()} characters</span></div>
               </div>
             </TabsContent>
             {(["image", "video"] as const).map(kind => (
@@ -156,7 +156,7 @@ export function DetectionWorkspace() {
           <button key={kind} type="button" className={`bento-tile ${mode === kind ? "is-active" : ""}`} aria-pressed={mode === kind} onClick={() => { if (mode !== kind) { invalidate(); setDragging(false); setMode(kind); } }}>
             <span className="bento-index">0{index + 1}</span>
             <span className="bento-name">{kind.charAt(0).toUpperCase() + kind.slice(1)}</span>
-            <span className="text-xs text-muted-foreground">{kind === "text" ? "Up to 50,000 characters" : fileRules[kind].label}</span>
+            <span className="text-xs text-muted-foreground">{kind === "text" ? "No length limit" : fileRules[kind].label}</span>
           </button>
         ))}
       </div>
