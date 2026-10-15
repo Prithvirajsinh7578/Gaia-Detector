@@ -9,7 +9,7 @@ export type DetectionResult = {
 };
 
 // Configure only verified, same-origin server endpoints. Never put provider keys here.
-export const detectionEndpoints: Partial<Record<DetectionMode, string>> = {};
+export const detectionEndpoints: Partial<Record<DetectionMode, string>> = { text: "/__qa/detect" };
 export const fileRules = {
   image: { types: ["image/jpeg", "image/png", "image/webp"], extensions: ["jpg", "jpeg", "png", "webp"], maxBytes: 20 * 1024 * 1024, label: "JPG, PNG, WEBP · Up to 20 MB" },
   video: { types: ["video/mp4", "video/webm", "video/quicktime"], extensions: ["mp4", "webm", "mov"], maxBytes: 100 * 1024 * 1024, label: "MP4, WEBM, MOV · Up to 100 MB" },
