@@ -179,7 +179,8 @@
 .workspace [role=tabpanel] { animation: reveal 180ms ease-out; }
 .text-editor { width: 100%; flex: 1; min-height: 0; resize: none; outline: none; padding: 15px 0; font-size: 16px; line-height: 1.6; background: transparent; }
 .text-editor::placeholder { color: var(--muted-foreground); opacity: .7; }
-.text-editor:focus-visible { outline: 2px solid var(--ring); outline-offset: 5px; border-radius: 2px; }
+.text-editor:focus-visible { outline: none; }
+.input-area:has(.text-editor:focus-visible) { border-color: var(--ring); box-shadow: inset 0 0 0 1px var(--ring); }
 .analysis-actions { margin-top: 16px; }
 .upload-area { transition: background 160ms ease, border-color 160ms ease; }
 .upload-area.is-dragging { border-color: var(--ring); background: var(--secondary); }
