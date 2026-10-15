@@ -24,6 +24,9 @@ node_modules/
 frontend/node_modules/
 dist/
 frontend/dist/
+frontend/.output/
+frontend/.nitro/
+frontend/.wrangler/
 .vite/
 frontend/.vite/
 npm-debug.log*

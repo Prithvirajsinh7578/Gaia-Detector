@@ -1,9 +1,11 @@
 import io
 import os
 import sys
+import json
 import time
 import tempfile
 import logging
+import subprocess
 from pathlib import Path
 from typing import Dict, Any, Optional
 from PIL import Image
@@ -75,12 +77,11 @@ class ContentDetectorService:
         if self._video_loaded:
             return
         try:
-            sys.path.insert(0, str(VIDEO_DETECTOR_DIR))
-            from hybrid_detector import HybridVideoDetector
-            logger.info("Mounting Hybrid AI Video Detector...")
-            self._video_detector = HybridVideoDetector()
+            runner_script = VIDEO_DETECTOR_DIR / "runner.py"
+            if not runner_script.exists():
+                raise FileNotFoundError(f"Video runner script not found at {runner_script}")
             self._video_loaded = True
-            logger.info("Hybrid Video Detector mounted successfully.")
+            logger.info("Hybrid Video Detector mounted successfully via runner.")
         except Exception as e:
             self._video_error = str(e)
             logger.error(f"Could not load Hybrid Video Detector: {e}")
@@ -360,7 +361,7 @@ class ContentDetectorService:
         start_time = time.time()
         self._load_video_detector()
 
-        if not self._video_loaded or not self._video_detector:
+        if not self._video_loaded:
             return {
                 "content_type": "video",
                 "status": "Detector Unavailable",
@@ -382,8 +383,24 @@ class ContentDetectorService:
                 f.write(video_bytes)
                 temp_file = f.name
 
-            # Run video prediction
-            res = self._video_detector.predict(temp_file)
+            # Run video prediction via isolated runner script
+            runner_script = VIDEO_DETECTOR_DIR / "runner.py"
+            proc = subprocess.run(
+                [sys.executable, str(runner_script), temp_file],
+                cwd=str(VIDEO_DETECTOR_DIR),
+                capture_output=True,
+                text=True,
+                timeout=180
+            )
+            if proc.returncode != 0:
+                raise RuntimeError(f"Video detector exited with code {proc.returncode}: {proc.stderr or proc.stdout}")
+
+            out = proc.stdout
+            marker = "__GAIA_RESULT__"
+            if marker not in out:
+                raise ValueError(f"Could not parse video detector result: {out}")
+
+            res = json.loads(out.split(marker)[1].strip())
             
             prob = float(res.get("ai_probability", res.get("probability", 50.0)))
             verdict = res.get("verdict", "Inconclusive")
