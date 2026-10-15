@@ -26,7 +26,7 @@ export function validateFile(file: File, mode: "image" | "video"): string | null
 
 export function parseDetectionResult(data: unknown): DetectionResult {
   if (!data || typeof data !== "object") throw new Error("The detector returned an invalid result.");
-  const result = data as Record<string, unknown>;
+  const result = data as { verdict?: unknown; score?: unknown; summary?: unknown; model?: unknown; processingMs?: unknown; evidence?: unknown };
   if (result.verdict !== "ai" && result.verdict !== "human" && result.verdict !== "inconclusive") throw new Error("The detector returned an invalid result.");
   const parsed: DetectionResult = { verdict: result.verdict };
   if (result.score !== undefined) {
