@@ -342,3 +342,6 @@ button:active:not(:disabled) { transform: translateY(1px); }
 .is-expanded .report-preview img, .is-expanded .report-preview video { max-height: 420px; }
 .is-expanded .report-preview blockquote { max-height: 360px; }
 @media (max-width: 767px) { .is-expanded .report-result { grid-template-columns: minmax(0, 1fr); } .is-expanded .report-preview { grid-column: auto; grid-row: auto; } .report-verdict h4 { font-size: 26px; } .report-head { padding-inline: 16px; } .report-body { padding-inline: 18px; } .report-foot { margin-inline: 18px; } }
+.report button.bg-primary { background: var(--primary); color: var(--primary-foreground); }
+.report button.bg-primary:hover { background: var(--primary-hover); }
+@media (max-width: 767px) { .report-preview { box-shadow: 4px 4px 0 -1px var(--background), 4px 4px 0 0 var(--border); } }
