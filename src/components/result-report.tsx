@@ -16,7 +16,7 @@ type Props = {
   result: DetectionResult | null;
   text: string;
   preview: string;
-  fileName?: string;
+  fileName?: string | undefined;
   expanded: boolean;
   onExpand: () => void;
   onAnother: () => void;
