@@ -108,6 +108,15 @@ export function DetectionWorkspace() {
           <div className="border-t border-panel-border pt-5 text-xs text-panel-muted">{result ? "An estimate, not proof of origin." : "No result without a connected detector."}</div>
         </aside>
       </div>
+      <div className="bento-strip" role="group" aria-label="Formats">
+        {(["text", "image", "video"] as const).map((kind, index) => (
+          <button key={kind} type="button" className={`bento-tile ${mode === kind ? "is-active" : ""}`} aria-pressed={mode === kind} onClick={() => { if (mode !== kind) { invalidate(); setDragging(false); setMode(kind); } }}>
+            <span className="bento-index">0{index + 1}</span>
+            <span className="bento-name">{kind[0].toUpperCase() + kind.slice(1)}</span>
+            <span className="text-xs text-muted-foreground">{kind === "text" ? "Up to 50,000 characters" : fileRules[kind].label}</span>
+          </button>
+        ))}
+      </div>
       <p className="mt-4 text-xs text-muted-foreground sm:hidden">Text, image & video detectors not connected.</p>
     </section>
   );
