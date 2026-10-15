@@ -1,0 +1,32 @@
+{
+  "version": "1.0.0",
+  "feature_names": [
+    "sharpness_mean",
+    "sharpness_std",
+    "texture_contrast_mean",
+    "texture_contrast_std",
+    "texture_energy_mean",
+    "color_diversity_mean",
+    "color_diversity_std",
+    "high_freq_ratio_mean",
+    "noise_residual_mean",
+    "noise_residual_std",
+    "compression_blocking_mean",
+    "deep_embedding_norm_mean",
+    "deep_embedding_dispersion",
+    "motion_magnitude_mean",
+    "motion_magnitude_std",
+    "frame_similarity_mean",
+    "frame_similarity_min",
+    "frame_similarity_std",
+    "flicker_score_mean",
+    "flicker_score_max",
+    "temporal_inconsistency",
+    "appearance_stability"
+  ],
+  "feature_count": 22,
+  "label_encoding": {
+    "0": "authentic",
+    "1": "ai_generated"
+  }
+}

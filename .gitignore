@@ -1,0 +1,76 @@
+# ==============================================================================
+# Gaia Content Authenticity Detector - Root .gitignore
+# ==============================================================================
+
+# Python Environments & Artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+.installed.cfg
+*.egg
+venv/
+env/
+.venv/
+detector/venv/
+backend/venv/
+
+# Node.js & Vite Frontend
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+.vite/
+frontend/.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment Configurations & Secrets (Keep .env.example tracked)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+backend/.env
+detector/.env
+frontend/.env
+*.key
+*.pem
+*.cert
+
+# Temporary Uploads & Cached Upload Directories
+tempdect/
+frontend/tempdect/
+backend/temp_uploads/
+temp/
+tmp/
+*.tmp
+
+# Raw Video Datasets & Archives
+*.rar
+*.zip
+*.tar
+*.gz
+frontend.rar
+detector/video_detector/datasets/raw/
+detector/video_detector/datasets/processed/
+datasets/raw/
+
+# IDE & OS Specific
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+git/
+detector/datasets/raw/
+*.log
+hs_err_pid*
+replay_pid*

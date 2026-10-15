@@ -51,32 +51,41 @@ def test_jwt_tampered_token_fails():
     decoded = decode_access_token(tampered)
     assert decoded is None
 
-def test_detect_text_transparent_unverified():
-    response = client.post("/detect/text", json={"text": "A quick brown fox."})
+def test_detect_text_live_pipeline():
+    sample_text = (
+        "Yesterday evening, I went out for a walk in the local park after a heavy rain shower. "
+        "The air was cool and smelled of damp earth, which made the quiet stroll very relaxing."
+    )
+    response = client.post("/detect/text", json={"text": sample_text})
     assert response.status_code == 200
     data = response.json()
     assert data["content_type"] == "text"
-    assert data["status"] == "Detector Not Implemented"
-    assert data["verified"] is False
-    assert data["confidence"] == 0.0
+    assert data["verified"] in [True, False]
+    assert "details" in data
+    assert "processing_time_sec" in data
 
-def test_detect_document_transparent_unverified():
-    files = {"file": ("sample.txt", b"Extracted text content", "text/plain")}
+def test_detect_document_txt_pipeline():
+    sample_doc = (
+        b"Artificial intelligence is transforming education by enabling personalized learning "
+        b"experiences. Modern generative language models generate coherent academic text, "
+        b"requiring robust statistical and stylometric evaluation to verify authenticity."
+    )
+    files = {"file": ("sample.txt", sample_doc, "text/plain")}
     response = client.post("/detect/document", files=files)
     assert response.status_code == 200
     data = response.json()
     assert data["content_type"] == "document"
-    assert data["verified"] is False
-    assert data["confidence"] == 0.0
+    assert "processing_time_sec" in data
+    assert "details" in data
 
-def test_detect_video_transparent_unverified():
+def test_detect_video_pipeline_handling():
+    # Corrupt or mock bytes should be handled safely without unhandled 500 crash
     files = {"file": ("clip.mp4", b"\x00\x00\x00\x18ftypmp42", "video/mp4")}
     response = client.post("/detect/video", files=files)
     assert response.status_code == 200
     data = response.json()
     assert data["content_type"] == "video"
-    assert data["verified"] is False
-    assert data["confidence"] == 0.0
+    assert "processing_time_sec" in data
 
 def test_upload_fallback_when_gdrive_unconfigured():
     files = {"file": ("test.png", b"\x89PNG\r\n\x1a\nfakeimagecontent", "image/png")}

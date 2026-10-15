@@ -1,0 +1,116 @@
+{
+  "model_version": "1.0.0",
+  "trained_at": "2026-10-14T22:04:36.255920",
+  "algorithm": "RandomForestClassifier + PlattSigmoidCalibration",
+  "sample_count": 66,
+  "metrics": {
+    "accuracy": 0.6,
+    "precision": 0.6667,
+    "recall": 0.4,
+    "f1_score": 0.5,
+    "roc_auc": 0.56,
+    "false_positive_rate": 0.2,
+    "false_negative_rate": 0.6
+  },
+  "confusion_matrix": {
+    "true_negative": 4,
+    "false_positive": 1,
+    "false_negative": 3,
+    "true_positive": 2
+  },
+  "feature_importances": [
+    {
+      "feature": "color_diversity_mean",
+      "importance": 0.1351
+    },
+    {
+      "feature": "deep_embedding_norm_mean",
+      "importance": 0.0672
+    },
+    {
+      "feature": "sharpness_std",
+      "importance": 0.0589
+    },
+    {
+      "feature": "high_freq_ratio_mean",
+      "importance": 0.0568
+    },
+    {
+      "feature": "appearance_stability",
+      "importance": 0.0544
+    },
+    {
+      "feature": "frame_similarity_mean",
+      "importance": 0.051
+    },
+    {
+      "feature": "compression_blocking_mean",
+      "importance": 0.0493
+    },
+    {
+      "feature": "flicker_score_max",
+      "importance": 0.0486
+    },
+    {
+      "feature": "temporal_inconsistency",
+      "importance": 0.0482
+    },
+    {
+      "feature": "frame_similarity_std",
+      "importance": 0.0472
+    },
+    {
+      "feature": "noise_residual_std",
+      "importance": 0.0462
+    },
+    {
+      "feature": "frame_similarity_min",
+      "importance": 0.046
+    },
+    {
+      "feature": "sharpness_mean",
+      "importance": 0.0379
+    },
+    {
+      "feature": "texture_contrast_mean",
+      "importance": 0.0378
+    },
+    {
+      "feature": "deep_embedding_dispersion",
+      "importance": 0.0357
+    },
+    {
+      "feature": "texture_energy_mean",
+      "importance": 0.0305
+    },
+    {
+      "feature": "color_diversity_std",
+      "importance": 0.0285
+    },
+    {
+      "feature": "flicker_score_mean",
+      "importance": 0.0267
+    },
+    {
+      "feature": "motion_magnitude_mean",
+      "importance": 0.026
+    },
+    {
+      "feature": "texture_contrast_std",
+      "importance": 0.0241
+    },
+    {
+      "feature": "noise_residual_mean",
+      "importance": 0.0237
+    },
+    {
+      "feature": "motion_magnitude_std",
+      "importance": 0.02
+    }
+  ],
+  "limitations": [
+    "Reliability degrades on highly compressed or low-bitrate uploads",
+    "Unseen video generation architectures may produce out-of-distribution embeddings",
+    "Audio track is not factored into this visual-temporal evaluation"
+  ]
+}
