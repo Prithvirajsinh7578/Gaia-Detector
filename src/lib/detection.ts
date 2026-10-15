@@ -2,6 +2,10 @@ export type DetectionMode = "text" | "image" | "video";
 export type DetectionResult = {
   verdict: "ai" | "human" | "inconclusive";
   score?: { value: number; label: string };
+  summary?: string;
+  model?: string;
+  processingMs?: number;
+  evidence?: string[];
 };
 
 // Configure only verified, same-origin server endpoints. Never put provider keys here.
@@ -22,15 +26,24 @@ export function validateFile(file: File, mode: "image" | "video"): string | null
 
 export function parseDetectionResult(data: unknown): DetectionResult {
   if (!data || typeof data !== "object") throw new Error("The detector returned an invalid result.");
-  const result = data as { verdict?: unknown; score?: unknown };
+  const result = data as Record<string, unknown>;
   if (result.verdict !== "ai" && result.verdict !== "human" && result.verdict !== "inconclusive") throw new Error("The detector returned an invalid result.");
+  const parsed: DetectionResult = { verdict: result.verdict };
   if (result.score !== undefined) {
     if (!result.score || typeof result.score !== "object") throw new Error("The detector returned an invalid score.");
     const score = result.score as { value?: unknown; label?: unknown };
     if (typeof score.value !== "number" || !Number.isFinite(score.value) || score.value < 0 || score.value > 100 || typeof score.label !== "string" || !score.label.trim()) throw new Error("The detector returned an invalid score.");
-    return { verdict: result.verdict, score: { value: score.value, label: score.label } };
+    parsed.score = { value: score.value, label: score.label };
   }
-  return { verdict: result.verdict };
+  // Optional details: shown only when the detector actually returns them.
+  if (typeof result.summary === "string" && result.summary.trim()) parsed.summary = result.summary.trim();
+  if (typeof result.model === "string" && result.model.trim()) parsed.model = result.model.trim();
+  if (typeof result.processingMs === "number" && Number.isFinite(result.processingMs) && result.processingMs >= 0) parsed.processingMs = result.processingMs;
+  if (Array.isArray(result.evidence)) {
+    const evidence = result.evidence.filter((item): item is string => typeof item === "string" && !!item.trim()).map(item => item.trim());
+    if (evidence.length) parsed.evidence = evidence;
+  }
+  return parsed;
 }
 
 export async function analyzeContent(mode: DetectionMode, input: string | File, signal: AbortSignal): Promise<DetectionResult> {

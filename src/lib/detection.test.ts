@@ -25,3 +25,9 @@ describe("Detection contract", () => {
     expect(() => parseDetectionResult({ verdict: "ai", score: { value: 150, label: "Confidence" } })).toThrow();
   });
 });
+describe("optional report details", () => {
+  it("keeps only real, well-formed details", () => {
+    const r = parseDetectionResult({ verdict: "human", model: "v2", processingMs: 840, evidence: ["a", 3, " "], summary: "" });
+    expect(r).toEqual({ verdict: "human", model: "v2", processingMs: 840, evidence: ["a"] });
+  });
+});
