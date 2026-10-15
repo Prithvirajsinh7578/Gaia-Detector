@@ -112,7 +112,7 @@ export function DetectionWorkspace() {
         {(["text", "image", "video"] as const).map((kind, index) => (
           <button key={kind} type="button" className={`bento-tile ${mode === kind ? "is-active" : ""}`} aria-pressed={mode === kind} onClick={() => { if (mode !== kind) { invalidate(); setDragging(false); setMode(kind); } }}>
             <span className="bento-index">0{index + 1}</span>
-            <span className="bento-name">{kind[0].toUpperCase() + kind.slice(1)}</span>
+            <span className="bento-name">{kind.charAt(0).toUpperCase() + kind.slice(1)}</span>
             <span className="text-xs text-muted-foreground">{kind === "text" ? "Up to 50,000 characters" : fileRules[kind].label}</span>
           </button>
         ))}
