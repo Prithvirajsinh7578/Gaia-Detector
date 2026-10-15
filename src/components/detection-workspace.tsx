@@ -27,6 +27,15 @@ export function DetectionWorkspace() {
     return () => URL.revokeObjectURL(url);
   }, [file]);
   useEffect(() => () => controller.current?.abort(), []);
+  useEffect(() => {
+    function select(event: Event) {
+      const next = (event as CustomEvent<DetectionMode>).detail;
+      if (next !== "text" && next !== "image" && next !== "video") return;
+      setMode(current => { if (current !== next) { invalidate(); setDragging(false); } return next; });
+    }
+    window.addEventListener("gaia:select-mode", select);
+    return () => window.removeEventListener("gaia:select-mode", select);
+  }, []);
 
   function invalidate() {
     controller.current?.abort();
