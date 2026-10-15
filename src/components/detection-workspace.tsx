@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, ArrowUpRight, Check, CircleAlert, FileText, Image, LoaderCircle, ScanLine, Upload, Video, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ResultReport } from "@/components/result-report";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { analyzeContent, fileRules, validateFile, type DetectionMode, type DetectionResult } from "@/lib/detection";
 
-const verdictLabels = { ai: "Likely AI-generated", human: "Likely human-created", inconclusive: "Inconclusive" };
 
 export function DetectionWorkspace() {
   const [mode, setMode] = useState<DetectionMode>("text");
@@ -15,6 +15,7 @@ export function DetectionWorkspace() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<DetectionResult | null>(null);
+  const [expanded, setExpanded] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const controller = useRef<AbortController | null>(null);
   const file = mode === "text" ? undefined : files[mode];
@@ -42,6 +43,7 @@ export function DetectionWorkspace() {
     controller.current = null;
     setBusy(false);
     setResult(null);
+    setExpanded(false);
     setError("");
   }
 
@@ -83,7 +85,7 @@ export function DetectionWorkspace() {
         <div className="min-w-0"><p className="eyebrow mb-2">THE WORKSPACE</p><h2 id="workspace-title" className="text-2xl font-medium">A little more clarity.</h2></div>
         <span className="hidden items-center gap-2 text-xs text-muted-foreground sm:flex"><span className="size-1.5 rounded-full bg-muted-foreground" />Detectors not connected</span>
       </div>
-      <div className="analysis-grid">
+      <div className={`analysis-grid ${expanded && result ? "is-expanded" : ""}`}>
         <div className="min-w-0">
           <Tabs value={mode} onValueChange={value => { invalidate(); setDragging(false); setMode(value as DetectionMode); }}>
             <TabsList aria-label="Content type" className="mode-tabs grid w-full grid-cols-3 rounded-none bg-transparent p-0">
@@ -109,13 +111,7 @@ export function DetectionWorkspace() {
           </Tabs>
           <div className="analysis-actions grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3"><span className="text-xs text-muted-foreground">{mode === "text" ? "Text stays here until you analyze." : "Local preview only. No file uploaded."}</span><Button onClick={analyze} disabled={busy || (mode === "text" ? !text.trim() : !file)} className="h-12 px-6">{busy ? <><LoaderCircle />Analyzing…</> : <>Analyze {mode}<ArrowRight /></>}</Button></div>
         </div>
-        <aside className={`result-panel ${result ? "has-result" : ""}`} aria-labelledby="result-title" aria-busy={busy}>
-          <div className="flex items-center justify-between"><h3 id="result-title" className="text-sm font-medium">Analysis result</h3><ScanLine className="size-4 text-panel-muted" /></div>
-          <div className="result-content" aria-live="polite" aria-atomic="true">
-            {result ? <><div className="result-symbol"><Check className="size-6" /></div><h4 className="text-2xl font-medium">{verdictLabels[result.verdict]}</h4>{result.score && <div className="mt-6"><p className="text-4xl">{result.score.value}%</p><p className="mt-2 text-xs text-panel-muted">{result.score.label}</p></div>}<Button className="mt-6 h-11" onClick={clear}>Analyze Another<ArrowRight /></Button></> : error ? <><CircleAlert className="mb-6 size-7 text-primary" /><h4 className="mb-3 text-xl">{error.includes("not connected") ? "Detector unavailable" : "Unable to analyze"}</h4><p role="alert" className="max-w-56 text-sm leading-relaxed text-panel-muted">{error}</p><Button variant="ghost" className="mt-5 h-11 text-panel-foreground hover:bg-panel-hover" onClick={() => { setError(""); }}>Dismiss<X /></Button></> : <><div className={`signal-mark ${busy ? "is-loading" : ""}`} aria-hidden="true"><span /><span /><span /><span /><span /><span /><span /></div><h4 className="mb-3 text-xl font-medium">{busy ? "Reading the signals" : "Nothing to read. Yet."}</h4><p className="text-sm text-panel-muted">{busy ? "Analysis in progress…" : "Your result will appear here."}</p></>}
-          </div>
-          <div className="border-t border-panel-border pt-5 text-xs text-panel-muted">{result ? "An estimate, not proof of origin." : "No result without a connected detector."}</div>
-        </aside>
+        <ResultReport mode={mode} busy={busy} error={error} result={result} text={text} preview={preview} fileName={file?.name} expanded={expanded} onExpand={() => setExpanded(value => !value)} onAnother={clear} onRetry={analyze} onDismiss={() => setError("")} />
       </div>
       <div className="bento-strip" role="group" aria-label="Formats">
         {(["text", "image", "video"] as const).map((kind, index) => (
