@@ -12,19 +12,24 @@ from PIL import Image
 
 logger = logging.getLogger(__name__)
 
-# Ensure detector packages are discoverable on sys.path
+# Ensure detector packages are discoverable on sys.path with WORKSPACE_ROOT given top precedence
 WORKSPACE_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 DETECTOR_DIR = WORKSPACE_ROOT / "detector"
 VIDEO_DETECTOR_DIR = DETECTOR_DIR / "video_detector"
+IMAGE_DETECTOR_DIR = DETECTOR_DIR / "image_detector"
 
-for p in [str(WORKSPACE_ROOT), str(DETECTOR_DIR), str(VIDEO_DETECTOR_DIR)]:
-    if p not in sys.path:
-        sys.path.insert(0, p)
+for p in [str(IMAGE_DETECTOR_DIR), str(VIDEO_DETECTOR_DIR), str(DETECTOR_DIR), str(WORKSPACE_ROOT)]:
+    if p in sys.path:
+        sys.path.remove(p)
+    sys.path.insert(0, p)
 
 
 class ContentDetectorService:
     def __init__(self):
-        # 1. Image Model (CLIP)
+        # 1. Image Model (Gaia 3-Model Image Ensemble: Custom EfficientNet-B0 + Swin + SigLIP)
+        self._image_ensemble = None
+        self._image_loaded = False
+        self._image_error = None
         self._clip_pipeline = None
         self._clip_loaded = False
         self._clip_error = None
@@ -42,6 +47,27 @@ class ContentDetectorService:
     # -------------------------------------------------------------------------
     # LAZY MODEL LOADERS
     # -------------------------------------------------------------------------
+    def _load_image_ensemble(self):
+        if self._image_loaded:
+            return
+        try:
+            # Ensure workspace root is first and clear any shadowed detector module
+            if str(WORKSPACE_ROOT) in sys.path:
+                sys.path.remove(str(WORKSPACE_ROOT))
+            sys.path.insert(0, str(WORKSPACE_ROOT))
+
+            if "detector" in sys.modules and not hasattr(sys.modules["detector"], "__path__"):
+                del sys.modules["detector"]
+
+            from detector.image_detector.ensemble import ImageEnsembleDetector
+            logger.info("Loading Gaia 3-Model Image Detection Ensemble...")
+            self._image_ensemble = ImageEnsembleDetector()
+            self._image_loaded = True
+            logger.info("Gaia 3-Model Image Detection Ensemble mounted successfully.")
+        except Exception as e:
+            self._image_error = str(e)
+            logger.warning(f"Could not load Image Ensemble Detector: {e}")
+
     def _load_clip_model(self):
         if self._clip_loaded:
             return
@@ -90,15 +116,51 @@ class ContentDetectorService:
     # 1. IMAGE DETECTION
     # -------------------------------------------------------------------------
     def detect_image(self, image_bytes: bytes) -> Dict[str, Any]:
-        """Zero-shot image classification using CLIP."""
+        """Runs multi-model AI authenticity inference on uploaded image bytes."""
         start_time = time.time()
+
+        # 1. Safe image decoding and dimension validation
+        try:
+            image = Image.open(io.BytesIO(image_bytes))
+            w, h = image.size
+            if w < 10 or h < 10:
+                raise ValueError("Image dimensions are too small to analyze.")
+            image = image.convert("RGB")
+        except Exception as e:
+            return {
+                "content_type": "image",
+                "status": "Corrupt / Invalid Image",
+                "prediction": "INCONCLUSIVE",
+                "confidence": 0.0,
+                "processing_time_sec": round(time.time() - start_time, 3),
+                "risk_level": "Unknown",
+                "summary": f"Could not decode image file: {str(e)}",
+                "detector_name": "Image File Validator",
+                "verified": False,
+                "details": {"error": str(e)}
+            }
+
+        # 2. Execute 3-Model Image Ensemble
+        self._load_image_ensemble()
+        if self._image_loaded and self._image_ensemble:
+            try:
+                result = self._image_ensemble.predict(image)
+                return result
+            except Exception as e:
+                logger.error(f"Image Ensemble inference error: {e}")
+
+        # Fallback to zero-shot CLIP if ensemble fails
+        return self._detect_image_clip_fallback(image, start_time)
+
+    def _detect_image_clip_fallback(self, image: Image.Image, start_time: float) -> Dict[str, Any]:
+        """Secondary fallback using zero-shot CLIP classification."""
         self._load_clip_model()
 
         if not self._clip_loaded or not self._clip_pipeline:
             return {
                 "content_type": "image",
                 "status": "Detector Unavailable",
-                "prediction": "Unknown",
+                "prediction": "INCONCLUSIVE",
                 "confidence": 0.0,
                 "processing_time_sec": round(time.time() - start_time, 2),
                 "risk_level": "Unknown",
@@ -112,7 +174,6 @@ class ContentDetectorService:
             }
 
         try:
-            image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
             candidate_labels = [
                 "a real photograph taken by a camera",
                 "an AI generated image"
@@ -129,8 +190,8 @@ class ContentDetectorService:
             ai_percentage = max(0.0, min(100.0, ai_score))
             is_ai = ai_percentage >= 60.0
 
-            prediction = "Likely AI" if is_ai else "Likely Real"
-            status = "Likely AI Generated" if is_ai else "Likely Real Image"
+            prediction = "LIKELY_AI_GENERATED" if is_ai else "LIKELY_AUTHENTIC"
+            status = "Likely AI-Generated" if is_ai else "Likely Authentic"
             risk_level = "High" if is_ai else "Low"
 
             summary = (
@@ -158,7 +219,7 @@ class ContentDetectorService:
             return {
                 "content_type": "image",
                 "status": "Analysis Failed",
-                "prediction": "Error",
+                "prediction": "INCONCLUSIVE",
                 "confidence": 0.0,
                 "processing_time_sec": round(time.time() - start_time, 2),
                 "risk_level": "Unknown",

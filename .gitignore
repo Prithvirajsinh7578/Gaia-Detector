@@ -62,6 +62,7 @@ tmp/
 frontend.rar
 detector/video_detector/datasets/raw/
 detector/video_detector/datasets/processed/
+detector/image_detector/data/dataset/
 datasets/raw/
 
 # IDE & OS Specific

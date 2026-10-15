@@ -1,0 +1,92 @@
+{
+  "evaluation_dataset": "Held-Out Test Set (Tristan Zhang AI vs Real)",
+  "total_test_images": 75,
+  "classes": {
+    "ai_generated": 50,
+    "authentic": 25
+  },
+  "model_1_custom": {
+    "name": "Gaia Custom EfficientNet-B0 Classifier",
+    "architecture": "EfficientNet-B0 (Transfer Learning)",
+    "metrics": {
+      "accuracy": 85.33,
+      "precision": 100.0,
+      "recall": 78.0,
+      "f1_score": 0.8764,
+      "roc_auc": 0.9552,
+      "confusion_matrix": {
+        "TN": 25,
+        "FP": 0,
+        "FN": 11,
+        "TP": 39
+      },
+      "false_positive_rate": 0.0,
+      "false_negative_rate": 22.0,
+      "mean_latency_ms": 380.7
+    }
+  },
+  "model_2_hf_swin": {
+    "name": "Pretrained Swin AI Detector (umm-maybe/AI-image-detector)",
+    "architecture": "Swin-V2 Transformer",
+    "license": "Apache 2.0",
+    "metrics": {
+      "accuracy": 54.67,
+      "precision": 94.44,
+      "recall": 34.0,
+      "f1_score": 0.5,
+      "roc_auc": 0.7176,
+      "confusion_matrix": {
+        "TN": 24,
+        "FP": 1,
+        "FN": 33,
+        "TP": 17
+      },
+      "false_positive_rate": 4.0,
+      "false_negative_rate": 66.0,
+      "mean_latency_ms": 961.1
+    }
+  },
+  "model_3_complementary": {
+    "name": "Complementary SigLIP AI Detector (Ateeqq/ai-vs-human-image-detector)",
+    "architecture": "SigLIP Vision Transformer",
+    "license": "Apache 2.0",
+    "metrics": {
+      "accuracy": 81.33,
+      "precision": 83.33,
+      "recall": 90.0,
+      "f1_score": 0.8654,
+      "roc_auc": 0.9072,
+      "confusion_matrix": {
+        "TN": 16,
+        "FP": 9,
+        "FN": 5,
+        "TP": 45
+      },
+      "false_positive_rate": 36.0,
+      "false_negative_rate": 10.0,
+      "mean_latency_ms": 532.4
+    }
+  },
+  "three_model_ensemble": {
+    "name": "Gaia 3-Model Weighted Image Consensus",
+    "metrics": {
+      "accuracy": 93.55,
+      "precision": 100.0,
+      "recall": 87.5,
+      "f1_score": 0.9333,
+      "roc_auc": 0.9833,
+      "confusion_matrix": {
+        "TN": 15,
+        "FP": 0,
+        "FN": 2,
+        "TP": 14
+      },
+      "false_positive_rate": 0.0,
+      "false_negative_rate": 12.5,
+      "mean_latency_ms": 1865.7,
+      "coverage_rate": 41.33,
+      "inconclusive_rate": 58.67,
+      "inconclusive_count": 44
+    }
+  }
+}
